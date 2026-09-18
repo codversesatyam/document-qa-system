@@ -4,20 +4,27 @@ const api = axios.create({
     baseURL: "http://localhost:8080/api",
 });
 
-/* =========================================================
-   DOCUMENTS
-========================================================= */
+// Automatically attach JWT to every protected API request
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem("documind_token");
+
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
 
 export const getDocuments = async () => {
     const response = await api.get("/documents");
 
-    console.log("Documents API response:", response.data);
-
     const body = response.data;
 
-    // Supports:
-    // [ ... ]
-    // { success: true, data: [ ... ] }
     return Array.isArray(body)
         ? body
         : Array.isArray(body?.data)
@@ -27,19 +34,14 @@ export const getDocuments = async () => {
                 : [];
 };
 
-
 export const getDocument = async (id) => {
     const response = await api.get(`/documents/${id}`);
-
-    console.log("Document API response:", response.data);
 
     return response.data?.data || response.data;
 };
 
-
 export const uploadDocument = async (file) => {
     const formData = new FormData();
-
     formData.append("file", file);
 
     const response = await api.post(
@@ -47,45 +49,22 @@ export const uploadDocument = async (file) => {
         formData
     );
 
-    console.log("Upload API response:", response.data);
-
     return response.data?.data || response.data;
 };
-
 
 export const deleteDocument = async (id) => {
     const response = await api.delete(`/documents/${id}`);
 
-    console.log("Delete API response:", response.data);
-
     return response.data?.data || response.data;
 };
 
-
-/* =========================================================
-   CHAT
-========================================================= */
-
 export const askQuestion = async (documentId, question) => {
-
     const response = await api.post("/chat", {
         documentId: Number(documentId),
         question: question.trim(),
     });
 
-    console.log("Chat API response:", response.data);
-
-    // Supports:
-    // {
-    //     success: true,
-    //     data: {
-    //         answer: "...",
-    //         sources: [...]
-    //     }
-    // }
-
     return response.data?.data || response.data;
 };
-
 
 export default api;

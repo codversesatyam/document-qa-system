@@ -15,8 +15,18 @@ function LandingPage() {
 
     const navigate = useNavigate();
 
-    const scrollTo = (id) => {
+    // Check whether the user is already logged in
+    const handleGetStarted = () => {
+        const token = localStorage.getItem("documind_token");
 
+        if (token) {
+            navigate("/app");
+        } else {
+            navigate("/login");
+        }
+    };
+
+    const scrollTo = (id) => {
         document
             .getElementById(id)
             ?.scrollIntoView({
@@ -95,9 +105,7 @@ function LandingPage() {
 
                     <button
                         className="primary-btn small-btn"
-                        onClick={() =>
-                            navigate("/app")
-                        }
+                        onClick={handleGetStarted}
                     >
                         Get Started →
                     </button>
@@ -156,9 +164,7 @@ function LandingPage() {
 
                             <button
                                 className="primary-btn large-btn"
-                                onClick={() =>
-                                    navigate("/app")
-                                }
+                                onClick={handleGetStarted}
                             >
                                 Get Started →
                             </button>
@@ -489,9 +495,7 @@ function LandingPage() {
 
                             <button
                                 className="outline-btn"
-                                onClick={() =>
-                                    navigate("/app")
-                                }
+                                onClick={handleGetStarted}
                             >
                                 Explore the workflow →
                             </button>
@@ -508,7 +512,6 @@ function LandingPage() {
 
                             <WorkflowArrow />
 
-
                             <WorkflowBox
                                 icon="≡"
                                 text="Extract Text"
@@ -516,14 +519,12 @@ function LandingPage() {
 
                             <WorkflowArrow />
 
-
                             <WorkflowBox
                                 icon="▦"
                                 text="Chunk Content"
                             />
 
                             <WorkflowArrow />
-
 
                             <WorkflowBox
                                 icon="◫"
@@ -541,7 +542,6 @@ function LandingPage() {
 
                             <WorkflowArrow />
 
-
                             <WorkflowBox
                                 icon="⌕"
                                 text="Semantic Retrieval"
@@ -549,14 +549,12 @@ function LandingPage() {
 
                             <WorkflowArrow />
 
-
                             <WorkflowBox
                                 icon="◈"
                                 text="LLM (Ollama)"
                             />
 
                             <WorkflowArrow />
-
 
                             <WorkflowBox
                                 icon="✓"
@@ -694,9 +692,7 @@ function LandingPage() {
 
                             <button
                                 className="primary-btn"
-                                onClick={() =>
-                                    navigate("/app")
-                                }
+                                onClick={handleGetStarted}
                             >
                                 Try DocuMind →
                             </button>
@@ -874,9 +870,7 @@ function LandingPage() {
 
                             <button
                                 className="primary-btn"
-                                onClick={() =>
-                                    navigate("/app")
-                                }
+                                onClick={handleGetStarted}
                             >
                                 Get Started →
                             </button>

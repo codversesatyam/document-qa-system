@@ -1,13 +1,10 @@
-import {
-    BrowserRouter,
-    Routes,
-    Route,
-} from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import WorkspacePage from "./pages/WorkspacePage";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 import "./App.css";
 
@@ -16,25 +13,18 @@ function App() {
         <BrowserRouter>
             <Routes>
 
-                <Route
-                    path="/"
-                    element={<LandingPage />}
-                />
+                {/* Public pages */}
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
 
-                <Route
-                    path="/login"
-                    element={<LoginPage />}
-                />
-
-                <Route
-                    path="/signup"
-                    element={<SignupPage />}
-                />
-
-                <Route
-                    path="/app/*"
-                    element={<WorkspacePage />}
-                />
+                {/* Protected workspace */}
+                <Route element={<ProtectedRoute />}>
+                    <Route
+                        path="/app/*"
+                        element={<WorkspacePage />}
+                    />
+                </Route>
 
             </Routes>
         </BrowserRouter>

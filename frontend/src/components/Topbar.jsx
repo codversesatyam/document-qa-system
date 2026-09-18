@@ -1,7 +1,8 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 function Topbar() {
     const location = useLocation();
+    const navigate = useNavigate();
 
     const titles = {
         "/app": "Overview",
@@ -11,6 +12,14 @@ function Topbar() {
         "/app/analytics": "Analytics",
         "/app/knowledge": "Knowledge Base",
         "/app/settings": "Settings",
+    };
+
+    const handleLogout = () => {
+        console.log("Logging out...");
+
+        localStorage.removeItem("documind_token");
+
+        navigate("/login", { replace: true });
     };
 
     return (
@@ -26,17 +35,31 @@ function Topbar() {
             </div>
 
             <div className="topbar-actions">
-                <button className="icon-btn">
+
+                <button
+                    type="button"
+                    className="icon-btn"
+                >
                     ?
                 </button>
 
-                <button className="icon-btn">
+                <button
+                    type="button"
+                    className="icon-btn"
+                >
                     ◔
                 </button>
 
-                <div className="topbar-avatar">
+                <button
+                    type="button"
+                    className="topbar-avatar"
+                    onClick={handleLogout}
+                    title="Logout"
+                    aria-label="Logout"
+                >
                     S
-                </div>
+                </button>
+
             </div>
         </header>
     );
