@@ -1,10 +1,20 @@
 package com.satyam.document_qa.service;
 
 import com.satyam.document_qa.dto.ChatResponse;
+import com.satyam.document_qa.entity.ChatHistory;
+import com.satyam.document_qa.entity.Document;
+import com.satyam.document_qa.entity.User;
+import com.satyam.document_qa.repository.ChatHistoryRepository;
+import com.satyam.document_qa.repository.DocumentRepository;
+
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,21 +24,60 @@ public class ChatService {
 
     private final ChatClient chatClient;
     private final VectorStore vectorStore;
+    private final DocumentRepository documentRepository;
+    private final ChatHistoryRepository chatHistoryRepository;
 
     public ChatService(
             ChatClient.Builder chatClientBuilder,
-            VectorStore vectorStore) {
+            VectorStore vectorStore,
+            DocumentRepository documentRepository,
+            ChatHistoryRepository chatHistoryRepository) {
 
         this.chatClient = chatClientBuilder.build();
         this.vectorStore = vectorStore;
+        this.documentRepository = documentRepository;
+        this.chatHistoryRepository = chatHistoryRepository;
     }
 
     public ChatResponse askQuestion(
             Long documentId,
             String question) {
 
-        // Search only inside the requested document
-        List<Document> relevantDocuments =
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null ||
+                !authentication.isAuthenticated()) {
+
+            throw new AccessDeniedException(
+                    "Authentication required"
+            );
+        }
+
+        String email = authentication.getName();
+
+        // Find document
+        Document document =
+                documentRepository.findById(documentId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Document not found"
+                                ));
+
+        // Check ownership
+        User documentOwner = document.getUser();
+
+        if (!documentOwner.getEmail().equals(email)) {
+
+            throw new AccessDeniedException(
+                    "You do not have permission to access this document"
+            );
+        }
+
+        // Search vector database
+        List<org.springframework.ai.document.Document> relevantDocuments =
                 vectorStore.similaritySearch(
                         SearchRequest.builder()
                                 .query(question)
@@ -39,11 +88,18 @@ public class ChatService {
                                 .build()
                 );
 
-        // Build context from retrieved chunks
-        String context = relevantDocuments.stream()
-                .map(Document::getText)
-                .reduce("", (a, b) -> a + "\n\n" + b);
+        // Build context
+        String context =
+                relevantDocuments.stream()
+                        .map(
+                                org.springframework.ai.document.Document::getText
+                        )
+                        .reduce(
+                                "",
+                                (a, b) -> a + "\n\n" + b
+                        );
 
+        // Build AI prompt
         String prompt = """
                 You are a document question-answering assistant.
 
@@ -61,32 +117,52 @@ public class ChatService {
 
                 User Question:
                 %s
-                """.formatted(context, question);
+                """.formatted(
+                context,
+                question
+        );
 
-        String answer = chatClient
-                .prompt()
-                .user(prompt)
-                .call()
-                .content();
+        // Ask AI
+        String answer =
+                chatClient
+                        .prompt()
+                        .user(prompt)
+                        .call()
+                        .content();
 
-        // Convert retrieved documents into API sources
+        // Build sources
         List<ChatResponse.Source> sources =
                 relevantDocuments.stream()
-                        .map(document -> {
+                        .map(chunk -> {
 
                             Integer chunkIndex =
-                                    ((Number) document
-                                            .getMetadata()
-                                            .get("chunkIndex"))
+                                    ((Number)
+                                            chunk.getMetadata()
+                                                    .get("chunkIndex"))
                                             .intValue();
 
                             return new ChatResponse.Source(
                                     chunkIndex,
-                                    document.getText()
+                                    chunk.getText()
                             );
                         })
                         .toList();
 
+        // -----------------------------------------
+        // Save chat question for Analytics
+        // -----------------------------------------
+
+        ChatHistory history =
+                new ChatHistory(
+                        documentOwner,
+                        document,
+                        question,
+                        sources.size()
+                );
+
+        chatHistoryRepository.save(history);
+
+        // Return response
         return new ChatResponse(
                 question,
                 answer,

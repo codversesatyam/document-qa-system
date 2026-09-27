@@ -1,6 +1,7 @@
 package com.satyam.document_qa.repository;
 
 import com.satyam.document_qa.entity.DocumentChunk;
+import com.satyam.document_qa.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -10,4 +11,6 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, Lo
     List<DocumentChunk> findByDocumentIdOrderByChunkIndex(Long documentId);
 
     void deleteByDocumentId(Long documentId);
+
+    long countByDocument_User(User user);
 }

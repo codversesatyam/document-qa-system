@@ -1,8 +1,14 @@
 package com.satyam.document_qa.service;
 
 import com.satyam.document_qa.entity.Document;
+import com.satyam.document_qa.entity.User;
 import com.satyam.document_qa.repository.DocumentChunkRepository;
 import com.satyam.document_qa.repository.DocumentRepository;
+import com.satyam.document_qa.repository.UserRepository;
+
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,6 +26,7 @@ public class DocumentService {
 
     private final DocumentRepository documentRepository;
     private final DocumentChunkRepository documentChunkRepository;
+    private final UserRepository userRepository;
     private final PdfTextExtractor pdfTextExtractor;
     private final DocumentChunkService documentChunkService;
     private final VectorStoreService vectorStoreService;
@@ -29,17 +36,43 @@ public class DocumentService {
     public DocumentService(
             DocumentRepository documentRepository,
             DocumentChunkRepository documentChunkRepository,
+            UserRepository userRepository,
             PdfTextExtractor pdfTextExtractor,
             DocumentChunkService documentChunkService,
             VectorStoreService vectorStoreService) {
 
         this.documentRepository = documentRepository;
         this.documentChunkRepository = documentChunkRepository;
+        this.userRepository = userRepository;
         this.pdfTextExtractor = pdfTextExtractor;
         this.documentChunkService = documentChunkService;
         this.vectorStoreService = vectorStoreService;
     }
 
+    /**
+     * Get the currently authenticated user.
+     */
+    private User getCurrentUser() {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("Authentication required");
+        }
+
+        String email = authentication.getName();
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new AccessDeniedException(
+                                "Authenticated user not found"
+                        ));
+    }
+
+    /**
+     * Upload a document and assign it to the logged-in user.
+     */
     public Document uploadDocument(MultipartFile file) throws IOException {
 
         if (file == null || file.isEmpty()) {
@@ -58,23 +91,27 @@ public class DocumentService {
             throw new IllegalArgumentException("Only PDF files are allowed");
         }
 
+        // Create uploads directory if it doesn't exist
         Files.createDirectories(uploadDirectory);
 
+        // Generate unique stored filename
         String storedFileName =
                 UUID.randomUUID() + "_" + originalFileName;
 
-        Path filePath =
-                uploadDirectory.resolve(storedFileName);
+        Path filePath = uploadDirectory.resolve(storedFileName);
 
+        // Save physical file
         Files.copy(
                 file.getInputStream(),
                 filePath,
                 StandardCopyOption.REPLACE_EXISTING
         );
 
+        // Extract PDF text
         String extractedText =
                 pdfTextExtractor.extractText(filePath);
 
+        // Create document entity
         Document document = new Document(
                 originalFileName,
                 contentType,
@@ -82,9 +119,17 @@ public class DocumentService {
                 filePath.toString()
         );
 
+        // IMPORTANT:
+        // Assign document to currently logged-in user
+        User currentUser = getCurrentUser();
+
+        document.setUser(currentUser);
+
+        // Save document
         Document savedDocument =
                 documentRepository.save(document);
 
+        // Create document chunks
         documentChunkService.createChunks(
                 savedDocument,
                 extractedText
@@ -93,42 +138,63 @@ public class DocumentService {
         return savedDocument;
     }
 
+    /**
+     * Return ONLY documents belonging to the logged-in user.
+     */
     public List<Document> getAllDocuments() {
-        return documentRepository.findAll();
+
+        User currentUser = getCurrentUser();
+
+        return documentRepository.findByUser(currentUser);
     }
 
+    /**
+     * Get a document only if it belongs to the logged-in user.
+     */
     public Document getDocumentById(Long id) {
 
-        return documentRepository.findById(id)
+        Document document = documentRepository.findById(id)
                 .orElseThrow(() ->
                         new IllegalArgumentException(
-                                "Document not found with id: " + id
+                                "Document not found"
                         ));
+
+        User currentUser = getCurrentUser();
+
+        if (!document.getUser().getId()
+                .equals(currentUser.getId())) {
+
+            throw new AccessDeniedException(
+                    "You do not have permission to access this document"
+            );
+        }
+
+        return document;
     }
 
+    /**
+     * Delete a document only if it belongs to
+     * the logged-in user.
+     */
     @Transactional
     public void deleteDocument(Long id) throws IOException {
 
-        Document document =
-                documentRepository.findById(id)
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "Document not found with id: " + id
-                                ));
+        // This also checks ownership
+        Document document = getDocumentById(id);
 
-        // 1. Delete vector embeddings
+        // Delete vectors
         vectorStoreService.deleteByDocumentId(id);
 
-        // 2. Delete document chunks
+        // Delete document chunks
         documentChunkRepository.deleteByDocumentId(id);
 
-        // 3. Delete physical PDF
+        // Delete physical file
         Path filePath =
                 Paths.get(document.getFilePath());
 
         Files.deleteIfExists(filePath);
 
-        // 4. Delete document record
+        // Delete document record
         documentRepository.delete(document);
     }
 }

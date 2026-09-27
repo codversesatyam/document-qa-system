@@ -1,6 +1,6 @@
 package com.satyam.document_qa.entity;
 
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -28,10 +28,20 @@ public class Document {
     @Column(nullable = false)
     private String filePath;
 
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
     public Document() {
     }
 
-    public Document(String fileName, String fileType, Long fileSize, String filePath) {
+    public Document(
+            String fileName,
+            String fileType,
+            Long fileSize,
+            String filePath) {
+
         this.fileName = fileName;
         this.fileType = fileType;
         this.fileSize = fileSize;
@@ -41,6 +51,10 @@ public class Document {
 
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getFileName() {
@@ -81,5 +95,13 @@ public class Document {
 
     public void setFilePath(String filePath) {
         this.filePath = filePath;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }
