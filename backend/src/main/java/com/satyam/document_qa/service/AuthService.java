@@ -6,7 +6,11 @@ import com.satyam.document_qa.entity.User;
 import com.satyam.document_qa.repository.UserRepository;
 import com.satyam.document_qa.service.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
 
 @Service
 public class AuthService {
@@ -64,5 +68,38 @@ public class AuthService {
         }
 
         return jwtService.generateToken(user.getEmail());
+    }
+
+    public User getCurrentUser() {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        System.out.println("AUTH ME: Checking authentication");
+
+        if (authentication == null ||
+                !authentication.isAuthenticated() ||
+                "anonymousUser".equals(authentication.getPrincipal())) {
+
+            System.out.println("AUTH ME: User is not authenticated");
+            throw new AccessDeniedException("Authentication required");
+        }
+
+        String email = authentication.getName();
+
+        System.out.println("AUTH ME: Email = " + email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    System.out.println("AUTH ME: User not found!");
+                    return new AccessDeniedException(
+                            "Authenticated user not found"
+                    );
+                });
+
+        System.out.println("AUTH ME: User found, ID = " + user.getId());
+        System.out.println("AUTH ME: Name = " + user.getName());
+
+        return user;
     }
 }

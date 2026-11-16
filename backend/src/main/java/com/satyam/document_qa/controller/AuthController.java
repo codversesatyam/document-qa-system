@@ -79,4 +79,28 @@ public class AuthController {
             String token
     ) {
     }
+
+    public record CurrentUserResponse(Long id,
+                                      String name,
+                                      String email) {
+
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<CurrentUserResponse> getCurrentUser() {
+
+        System.out.println("AUTH CONTROLLER: /me endpoint reached");
+
+        User user = authService.getCurrentUser();
+
+        System.out.println("AUTH CONTROLLER: Preparing response");
+
+        return ResponseEntity.ok(
+                new CurrentUserResponse(
+                        user.getId(),
+                        user.getName(),
+                        user.getEmail()
+                )
+        );
+    }
 }

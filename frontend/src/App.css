@@ -1999,4 +1999,127 @@ button {
         width: 100%;
     }
 
+   
+
+}
+
+/* DocuMind Logout Button */
+
+button.logout-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 20px;
+    padding: 11px 26px;
+
+    background-color: #e53945;
+    color: #ffffff;
+
+    border: 1px solid #e53945;
+    border-radius: 7px;
+
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+button.logout-button:hover {
+    background-color: #bd2632;
+    border-color: #bd2632;
+    transform: translateY(-1px);
+}
+
+
+/* Recent Documents */
+
+.recent-documents-card {
+    margin-top: 15px;
+}
+
+.recent-documents-card .card-header {
+    margin-bottom: 20px;
+}
+
+.recent-documents-card .card-header h3 {
+    margin-top: 8px;
+    font-size: 17px;
+}
+
+.recent-documents-list {
+    border-top: 1px solid var(--border);
+}
+
+.recent-document-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.recent-file-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ff7777;
+    background: rgba(255, 102, 102, 0.08);
+    border: 1px solid rgba(255, 102, 102, 0.2);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.recent-document-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.recent-document-info strong,
+.recent-document-info small {
+    display: block;
+}
+
+.recent-document-info strong {
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recent-document-info small {
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 5px;
+}
+
+.recent-document-size {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.recent-empty {
+    padding: 35px 15px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+}
+
+.recent-empty h3 {
+    color: var(--text);
+    font-size: 15px;
+    margin-bottom: 8px;
+}
+
+.recent-empty p {
+    font-size: 12px;
+    margin-bottom: 18px;
+}
+
+@media (max-width: 550px) {
+    .recent-document-size {
+        display: none;
+    }
 }

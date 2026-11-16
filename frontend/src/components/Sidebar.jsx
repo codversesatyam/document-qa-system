@@ -1,8 +1,25 @@
+
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Logo from "./Logo";
+import { getCurrentUser } from "../services/api";
 
 function Sidebar() {
     const location = useLocation();
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const data = await getCurrentUser();
+                setUser(data);
+            } catch (error) {
+                console.error("Failed to load user profile:", error);
+            }
+        };
+
+        fetchUser();
+    }, []);
 
     const items = [
         ["▣", "Overview", "/app"],
@@ -12,6 +29,8 @@ function Sidebar() {
         ["▥", "Analytics", "/app/analytics"],
         ["◈", "Knowledge Base", "/app/knowledge"],
     ];
+
+    const initial = user?.name?.charAt(0).toUpperCase() || "U";
 
     return (
         <aside className="workspace-sidebar">
@@ -27,9 +46,7 @@ function Sidebar() {
                         key={path}
                         to={path}
                         className={`sidebar-link ${
-                            location.pathname === path
-                                ? "active"
-                                : ""
+                            location.pathname === path ? "active" : ""
                         }`}
                     >
                         <span>{icon}</span>
@@ -42,9 +59,7 @@ function Sidebar() {
                 <Link
                     to="/app/settings"
                     className={`sidebar-link ${
-                        location.pathname === "/app/settings"
-                            ? "active"
-                            : ""
+                        location.pathname === "/app/settings" ? "active" : ""
                     }`}
                 >
                     <span>⚙</span>
@@ -53,16 +68,16 @@ function Sidebar() {
 
                 <div className="sidebar-user">
                     <div className="avatar">
-                        S
+                        {initial}
                     </div>
 
                     <div>
                         <strong>
-                            Satyam
+                            {user?.name || "Loading..."}
                         </strong>
 
                         <small>
-                            Developer
+                            Workspace Member
                         </small>
                     </div>
                 </div>

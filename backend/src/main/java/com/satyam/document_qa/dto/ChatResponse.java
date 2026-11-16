@@ -1,4 +1,8 @@
+
 package com.satyam.document_qa.dto;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
@@ -13,8 +17,8 @@ public class ChatResponse {
             String question,
             String answer,
             Long documentId,
-            List<Source> sources) {
-
+            List<Source> sources
+    ) {
         this.question = question;
         this.answer = answer;
         this.documentId = documentId;
@@ -37,12 +41,20 @@ public class ChatResponse {
         return sources;
     }
 
+    // Source DTO
     public static class Source {
 
         private Integer chunkIndex;
         private String content;
 
-        public Source(Integer chunkIndex, String content) {
+        public Source() {
+        }
+
+        @JsonCreator
+        public Source(
+                @JsonProperty("chunkIndex") Integer chunkIndex,
+                @JsonProperty("content") String content
+        ) {
             this.chunkIndex = chunkIndex;
             this.content = content;
         }

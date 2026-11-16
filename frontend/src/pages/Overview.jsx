@@ -1,23 +1,79 @@
+
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import DashboardStat from "../components/DashboardStat";
 import QuickAction from "../components/QuickAction";
+import {
+    getDashboardStats,
+    getDocuments
+} from "../services/api";
 
 function Overview() {
     const navigate = useNavigate();
 
+    const [stats, setStats] = useState(null);
+    const [documents, setDocuments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [documentsLoading, setDocumentsLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        const fetchDashboard = async () => {
+            try {
+                const [statsData, documentsData] = await Promise.all([
+                    getDashboardStats(),
+                    getDocuments()
+                ]);
+
+                setStats(statsData);
+
+                const sortedDocuments = [...documentsData].sort(
+                    (a, b) =>
+                        new Date(b.uploadedAt) - new Date(a.uploadedAt)
+                );
+
+                setDocuments(sortedDocuments.slice(0, 5));
+
+            } catch (err) {
+                console.error("Dashboard error:", err);
+                setError("Unable to load dashboard data.");
+            } finally {
+                setLoading(false);
+                setDocumentsLoading(false);
+            }
+        };
+
+        fetchDashboard();
+    }, []);
+
+    const formatDate = (date) => {
+        if (!date) return "Date unavailable";
+
+        return new Date(date).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+        });
+    };
+
+    const formatFileSize = (size) => {
+        if (!size) return "—";
+
+        return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+    };
+
     return (
         <div className="page-content">
 
+            {/* Welcome Section */}
             <div className="welcome-row">
                 <div>
                     <div className="section-label">
                         DASHBOARD
                     </div>
 
-                    <h1>
-                        Welcome back.
-                    </h1>
+                    <h1>Welcome back.</h1>
 
                     <p>
                         Manage your documents
@@ -27,50 +83,53 @@ function Overview() {
 
                 <button
                     className="primary-btn"
-                    onClick={() =>
-                        navigate("/app/documents")
-                    }
+                    onClick={() => navigate("/app/documents")}
                 >
                     + Upload Document
                 </button>
             </div>
 
+            {error && (
+                <p className="error-message">{error}</p>
+            )}
+
+            {/* Dashboard Statistics */}
             <div className="overview-stats">
 
                 <DashboardStat
                     title="Documents"
-                    value="—"
+                    value={loading ? "..." : stats?.totalDocuments ?? 0}
                     icon="▤"
                 />
 
                 <DashboardStat
                     title="Questions Asked"
-                    value="—"
+                    value={loading ? "..." : stats?.totalQuestions ?? 0}
                     icon="◌"
                 />
 
                 <DashboardStat
                     title="Chunks Indexed"
-                    value="—"
+                    value={loading ? "..." : stats?.totalChunks ?? 0}
                     icon="▦"
                 />
 
                 <DashboardStat
                     title="System Status"
-                    value="Online"
+                    value={loading ? "..." : stats?.systemStatus ?? "Unknown"}
                     icon="✓"
-                    green
+                    green={!loading && stats?.systemStatus === "ONLINE"}
                 />
 
             </div>
 
+            {/* Quick Start and System */}
             <div className="overview-grid">
 
                 <div className="dashboard-card large-card">
 
                     <div className="card-header">
                         <div>
-
                             <span className="section-label">
                                 QUICK START
                             </span>
@@ -78,7 +137,6 @@ function Overview() {
                             <h3>
                                 Ask your documents anything.
                             </h3>
-
                         </div>
                     </div>
 
@@ -111,63 +169,122 @@ function Overview() {
                 <div className="dashboard-card">
 
                     <div className="card-header">
-
-                        <h3>
-                            System
-                        </h3>
+                        <h3>System</h3>
 
                         <span className="green-status">
-                            ● Online
+                            ● {loading
+                                ? "Checking..."
+                                : stats?.systemStatus ?? "Unknown"}
                         </span>
-
                     </div>
 
                     <div className="system-info">
 
                         <div>
-                            <span>
-                                Backend
-                            </span>
-
-                            <strong>
-                                Spring Boot
-                            </strong>
+                            <span>Backend</span>
+                            <strong>Spring Boot</strong>
                         </div>
 
                         <div>
-                            <span>
-                                Vector DB
-                            </span>
-
-                            <strong>
-                                pgvector
-                            </strong>
+                            <span>Vector DB</span>
+                            <strong>pgvector</strong>
                         </div>
 
                         <div>
-                            <span>
-                                LLM
-                            </span>
-
-                            <strong>
-                                Ollama
-                            </strong>
+                            <span>LLM</span>
+                            <strong>Ollama</strong>
                         </div>
 
                         <div>
-                            <span>
-                                Frontend
-                            </span>
-
-                            <strong>
-                                React
-                            </strong>
+                            <span>Frontend</span>
+                            <strong>React</strong>
                         </div>
 
                     </div>
                 </div>
 
             </div>
+
+            {/* Recent Documents */}
+            <div className="dashboard-card recent-documents-card">
+
+                <div className="card-header">
+                    <div>
+                        <span className="section-label">
+                            YOUR LIBRARY
+                        </span>
+
+                        <h3>Recent Documents</h3>
+                    </div>
+
+                    <button
+                        className="outline-btn small-btn"
+                        onClick={() => navigate("/app/documents")}
+                    >
+                        View All →
+                    </button>
+                </div>
+
+                {documentsLoading ? (
+
+                    <div className="recent-empty">
+                        Loading documents...
+                    </div>
+
+                ) : documents.length === 0 ? (
+
+                    <div className="recent-empty">
+                        <div className="empty-icon">▤</div>
+                        <h3>No documents uploaded yet.</h3>
+                        <p>Upload your first PDF to get started.</p>
+
+                        <button
+                            className="primary-btn"
+                            onClick={() => navigate("/app/documents")}
+                        >
+                            Upload Document
+                        </button>
+                    </div>
+
+                ) : (
+
+                    <div className="recent-documents-list">
+
+                        {documents.map((doc) => (
+
+                            <div
+                                className="recent-document-row"
+                                key={doc.id}
+                            >
+
+                                <div className="recent-file-icon">
+                                    PDF
+                                </div>
+
+                                <div className="recent-document-info">
+                                    <strong>
+                                        {doc.fileName || "Untitled Document"}
+                                    </strong>
+
+                                    <small>
+                                        Uploaded: {formatDate(doc.uploadedAt)}
+                                    </small>
+                                </div>
+
+                                <div className="recent-document-size">
+                                    {formatFileSize(doc.fileSize)}
+                                </div>
+
+                            </div>
+
+                        ))}
+
+                    </div>
+
+                )}
+
+            </div>
+
         </div>
     );
 }

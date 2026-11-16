@@ -8,5 +8,10 @@ import java.util.List;
 
 public interface DocumentRepository extends JpaRepository<Document, Long> {
 
+
     List<Document> findByUser(User user);
+
+    long countByUser(User user);
+
+    List<Document> findTop5ByUserOrderByUploadedAtDesc(User user);
 }
